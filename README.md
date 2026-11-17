@@ -46,8 +46,8 @@ columns. On the main screen it opens inline above the prompt.
 ## Limits
 
 - The pane keeps the newest 500 events.
-- A resumed session refills the pane from the main conversation. The history
-  inside an agent row is not refilled.
+- A resumed session refills the pane from the saved conversations: the main
+  one, and the one of each agent.
 - The pane scrolls to the newest row each time an event arrives.
 
 ## Develop
