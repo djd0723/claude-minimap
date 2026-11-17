@@ -1,0 +1,5 @@
+{
+  "name": "claude-minimap",
+  "owner": { "name": "Dominic Dones" },
+  "plugins": [{ "name": "minimap", "source": "./" }]
+}
