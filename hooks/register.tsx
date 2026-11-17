@@ -9,7 +9,7 @@ const DOCK_COLUMNS = 48
 const MAX_EVENTS = 500
 const AGENT_TOOLS = new Set(['Agent', 'Task'])
 
-const events = atom({ plugin: 'minimap', key: 'events' } as const, [], { shape: 'events-3' })
+const events = atom({ plugin: 'minimap', key: 'events' } as const, [], { shape: 'events-4' })
 const agents = atom({ plugin: 'minimap', key: 'agents' } as const, {}, { shape: 'agents-1' })
 const expanded = atom({ plugin: 'minimap', key: 'expanded' } as const, [], { shape: 'expanded-1' })
 
@@ -112,40 +112,61 @@ async function add($: EngineInterface, event: MinimapEvent): Promise<void> {
   void $.ui.scroll({ in: PANE, to: 'end' })
 }
 
+/** Reads one saved conversation into `history`, then the conversation of each agent it spawned. */
+async function fill(
+  $: EngineInterface,
+  history: MinimapEvent[],
+  agentCalls: Record<string, string>,
+  agentId?: string,
+): Promise<void> {
+  const answer = await $.session.messages(agentId ? { agentId } : { last: MAX_EVENTS })
+  const messages = Array.isArray(answer) ? answer : []
+  const spawned: string[] = []
+  messages.forEach((message, index) => {
+    const text = oneLine(message.text)
+    // A user row in an agent's conversation is its prompt, which the agent row shows.
+    // On the main loop, one that starts with a tag is the engine's, not something the person typed.
+    const isShown = message.role === 'assistant' || (!agentId && !text.startsWith('<'))
+    if (text && isShown) {
+      history.push({
+        id: message.uuid ?? `history-${agentId ?? 'main'}-${index}`,
+        kind: message.role,
+        label: message.role === 'user' ? 'User' : 'Assistant',
+        text,
+        agentId,
+        isAgentCall: false,
+        isDone: true,
+      })
+    }
+    for (const use of message.toolUses) {
+      history.push({
+        id: use.tool_use_id,
+        kind: 'tool',
+        ...describeTool(use.tool, use.input),
+        agentId,
+        isAgentCall: AGENT_TOOLS.has(use.tool),
+        isDone: true,
+      })
+      if (use.agentId && !agentCalls[use.agentId]) {
+        agentCalls[use.agentId] = use.tool_use_id
+        spawned.push(use.agentId)
+      }
+    }
+  })
+  for (const child of spawned) await fill($, history, agentCalls, child)
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'minimap', description: 'Show the session minimap in a pane' })
     void $.ui.open({ id: PANE, title: TITLE, columns: DOCK_COLUMNS })
 
-    // `$.state` starts empty in a resumed session, so the main conversation's rows fill it.
+    // `$.state` starts empty in a resumed session, so the saved conversations fill it.
     if ((await read($, events)).length === 0) {
       const history: MinimapEvent[] = []
-      const answer = await $.session.messages({ last: MAX_EVENTS })
-      const messages = Array.isArray(answer) ? answer : []
-      messages.forEach((message, index) => {
-        const text = oneLine(message.text)
-        // A user row that starts with a tag is the engine's, not something the person typed.
-        const isTyped = message.role === 'assistant' || !text.startsWith('<')
-        if (text && isTyped) {
-          history.push({
-            id: message.uuid ?? `history-${index}`,
-            kind: message.role,
-            label: message.role === 'user' ? 'User' : 'Assistant',
-            text,
-            isAgentCall: false,
-            isDone: true,
-          })
-        }
-        for (const use of message.toolUses) {
-          history.push({
-            id: use.tool_use_id,
-            kind: 'tool',
-            ...describeTool(use.tool, use.input),
-            isAgentCall: AGENT_TOOLS.has(use.tool),
-            isDone: true,
-          })
-        }
-      })
+      const agentCalls: Record<string, string> = {}
+      await fill($, history, agentCalls)
+      await update($, agents, map => ({ ...agentCalls, ...map }))
       await update($, events, list => (list.length === 0 ? history.slice(-MAX_EVENTS) : list))
     }
 
