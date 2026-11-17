@@ -1,5 +1,5 @@
 {
   "name": "claude-minimap",
   "owner": { "name": "Dominic Dones" },
-  "plugins": [{ "name": "minimap", "source": "./" }]
+  "plugins": [{ "name": "minimap", "source": { "source": "github", "repo": "djd0723/claude-minimap" } }]
 }
