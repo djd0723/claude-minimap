@@ -1,5 +1,5 @@
 export type MinimapEvent = {
-  /** The tool call's `tool_use_id`, or a generated id for a prompt. */
+  /** The tool call's `tool_use_id`, or the uuid of a message's transcript row. */
   id: string
   kind: 'user' | 'assistant' | 'tool'
   label: string

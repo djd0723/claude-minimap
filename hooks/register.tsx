@@ -7,6 +7,8 @@ const PANE = 'minimap'
 const TITLE = 'Minimap'
 const DOCK_COLUMNS = 48
 const MAX_EVENTS = 500
+const RESUME_POLL_MS = 100
+const RESUME_POLL_TICKS = 50
 const AGENT_TOOLS = new Set(['Agent', 'Task'])
 
 const events = atom({ plugin: 'minimap', key: 'events' } as const, [], { shape: 'events-4' })
@@ -156,19 +158,23 @@ async function fill(
   for (const child of spawned) await fill($, history, agentCalls, child)
 }
 
+/** Fills an empty `$.state` from the saved conversations, as a resumed session starts with none. */
+async function refill($: EngineInterface): Promise<void> {
+  if ((await read($, events)).length > 0) return
+
+  const history: MinimapEvent[] = []
+  const agentCalls: Record<string, string> = {}
+  await fill($, history, agentCalls)
+  await update($, agents, map => ({ ...agentCalls, ...map }))
+  await update($, events, list => (list.length === 0 ? history.slice(-MAX_EVENTS) : list))
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'minimap', description: 'Show the session minimap in a pane' })
     void $.ui.open({ id: PANE, title: TITLE, columns: DOCK_COLUMNS })
 
-    // `$.state` starts empty in a resumed session, so the saved conversations fill it.
-    if ((await read($, events)).length === 0) {
-      const history: MinimapEvent[] = []
-      const agentCalls: Record<string, string> = {}
-      await fill($, history, agentCalls)
-      await update($, agents, map => ({ ...agentCalls, ...map }))
-      await update($, events, list => (list.length === 0 ? history.slice(-MAX_EVENTS) : list))
-    }
+    await refill($)
 
     return next(e)
   })
@@ -178,6 +184,17 @@ export const register: Register = on => {
       await update($, events, () => [])
       await update($, agents, () => ({}))
       await update($, expanded, () => [])
+    }
+    // `/resume` swaps the session in a running process and raises no `session.start`.
+    // The saved conversation is readable once the session id changes.
+    if (e.reason === 'resume') {
+      let ticks = 0
+      const poll = $.clock.every(RESUME_POLL_MS, async () => {
+        ticks += 1
+        if ((await $.session.id()) === e.sessionId && ticks < RESUME_POLL_TICKS) return
+        poll.cancel()
+        await refill($)
+      })
     }
 
     return next(e)
@@ -189,41 +206,28 @@ export const register: Register = on => {
     return { text: 'Minimap pane opened.' }
   })
 
-  on('prompt.submit', async ($, e, next) => {
-    // A meta prompt, such as a task notification, is not something the person typed.
-    if (e.isMeta) return next(e)
-
-    const prompt: MinimapEvent = {
-      id: `prompt-${Date.now()}`,
-      kind: 'user',
-      label: 'User',
-      text: oneLine(e.text),
-      isAgentCall: false,
-      isDone: true,
-    }
-    await add($, prompt)
-
-    return next(e)
-  })
-
   on('session.append', async ($, e, next) => {
-    if (e.message.type === 'assistant' && e.origin.kind === 'model') {
+    const isReply = e.message.type === 'assistant' && e.origin.kind === 'model'
+    // A meta prompt, such as a task notification, is not something the person typed.
+    const isPrompt = e.message.type === 'user' && e.door === 'prompt' && !e.message.isMeta && !e.agentId
+    if (isReply || isPrompt) {
       let text = ''
       for (const block of e.message.content) {
         if (block.type === 'text') text += `${block.text} `
       }
       text = oneLine(text)
       if (text) {
-        const reply: MinimapEvent = {
+        // The transcript scrolls to a row by its uuid.
+        const row: MinimapEvent = {
           id: e.uuid,
-          kind: 'assistant',
-          label: 'Assistant',
+          kind: isPrompt ? 'user' : 'assistant',
+          label: isPrompt ? 'User' : 'Assistant',
           text,
           agentId: e.agentId,
           isAgentCall: false,
           isDone: true,
         }
-        await add($, reply)
+        await add($, row)
       }
     }
 

@@ -1,6 +1,6 @@
 {
   "name": "minimap",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A pane that maps the session: prompts, tool calls, and agent history in collapsible groups",
   "types": "./types/index.d.ts"
 }

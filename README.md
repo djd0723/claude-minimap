@@ -32,7 +32,7 @@ git credential for github.com on the machine.
 - A `▸` marks a row that has more to show. Press the row to open it.
 - A message row opens to its full text. A tool row opens to its full command or
   path. An agent row opens to its history.
-- A press on a tool row also scrolls the transcript to that call.
+- A press on a message row or a tool row also scrolls the transcript to it.
 - `●` marks a finished tool call. `◐` marks one that runs.
 
 To move in the pane with the keyboard, press ctrl+x then tab. The arrows scroll,
