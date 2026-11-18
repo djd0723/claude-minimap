@@ -33,6 +33,10 @@ git credential for github.com on the machine.
 - A message row opens to its full text. A tool row opens to its full command or
   path. An agent row opens to its history.
 - A press on a message row or a tool row also scrolls the transcript to it.
+- A `Thinking` row marks a thinking block. It shows the text when the block
+  holds text, and the label alone when it does not. Set
+  `"showThinkingSummaries": true` in `settings.json` to get the text in an
+  interactive session.
 - `●` marks a finished tool call. `◐` marks one that runs.
 
 To move in the pane with the keyboard, press ctrl+x then tab. The arrows scroll,

@@ -129,11 +129,13 @@ async function fill(
     // A user row in an agent's conversation is its prompt, which the agent row shows.
     // On the main loop, one that starts with a tag is the engine's, not something the person typed.
     const isShown = message.role === 'assistant' || (!agentId && !text.startsWith('<'))
-    if (text && isShown) {
+    // A saved thinking row reads back as an assistant row with no text and no tool call.
+    const isThinking = message.role === 'assistant' && !text && message.toolUses.length === 0
+    if ((text && isShown) || isThinking) {
       history.push({
         id: message.uuid ?? `history-${agentId ?? 'main'}-${index}`,
-        kind: message.role,
-        label: message.role === 'user' ? 'User' : 'Assistant',
+        kind: isThinking ? 'thinking' : message.role,
+        label: isThinking ? 'Thinking' : message.role === 'user' ? 'User' : 'Assistant',
         text,
         agentId,
         isAgentCall: false,
@@ -212,16 +214,22 @@ export const register: Register = on => {
     const isPrompt = e.message.type === 'user' && e.door === 'prompt' && !e.message.isMeta && !e.agentId
     if (isReply || isPrompt) {
       let text = ''
+      let isThinking = false
       for (const block of e.message.content) {
         if (block.type === 'text') text += `${block.text} `
+        if (block.type === 'thinking') {
+          isThinking = true
+          text += `${block.thinking} `
+        }
       }
       text = oneLine(text)
-      if (text) {
+      // A model can sign a thinking block and send no text in it.
+      if (text || isThinking) {
         // The transcript scrolls to a row by its uuid.
         const row: MinimapEvent = {
           id: e.uuid,
-          kind: isPrompt ? 'user' : 'assistant',
-          label: isPrompt ? 'User' : 'Assistant',
+          kind: isPrompt ? 'user' : isThinking ? 'thinking' : 'assistant',
+          label: isPrompt ? 'User' : isThinking ? 'Thinking' : 'Assistant',
           text,
           agentId: e.agentId,
           isAgentCall: false,
@@ -291,6 +299,8 @@ export const register: Register = on => {
               ? 'success'
               : event.kind === 'assistant'
                 ? 'warning'
+                : event.kind === 'thinking'
+                  ? 'inactive'
                 : event.isAgentCall
                   ? 'claude'
                   : 'suggestion'

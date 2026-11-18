@@ -1,7 +1,7 @@
 export type MinimapEvent = {
   /** The tool call's `tool_use_id`, or the uuid of a message's transcript row. */
   id: string
-  kind: 'user' | 'assistant' | 'tool'
+  kind: 'user' | 'assistant' | 'thinking' | 'tool'
   label: string
   text: string
   /** The long form a row shows when expanded: a file's path, an agent's prompt. */
