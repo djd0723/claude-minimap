@@ -81,7 +81,7 @@ function visibleRows(
     rows.push({ id: event.id, event, depth, childCount: group.length, isDone: event.isDone })
     if (open.includes(event.id)) walk(group, depth + 1)
   }
-  // Two or more tool calls in a row fold into one run row.
+  // Two or more tool calls in a row fold into one run row. An agent call keeps its own row.
   const walk = (siblings: readonly MinimapEvent[], depth: number) => {
     let run: MinimapEvent[] = []
     const flush = () => {
@@ -95,7 +95,7 @@ function visibleRows(
       run = []
     }
     for (const event of siblings) {
-      if (event.kind === 'tool') {
+      if (event.kind === 'tool' && !event.isAgentCall) {
         run.push(event)
         continue
       }
@@ -323,7 +323,7 @@ export const register: Register = on => {
                   {glyph}
                 </Text>
               )}
-              {glyph ? <Text bold>{label}</Text> : <Text bold color={color}>{label}</Text>}
+              {glyph && !event?.isAgentCall ? <Text bold>{label}</Text> : <Text bold color={color}>{label}</Text>}
               {text && `: ${text}`}
               {count && <Text dimColor>{count}</Text>}
             </Button>
