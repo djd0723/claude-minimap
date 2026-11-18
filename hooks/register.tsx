@@ -214,28 +214,28 @@ export const register: Register = on => {
     const isPrompt = e.message.type === 'user' && e.door === 'prompt' && !e.message.isMeta && !e.agentId
     if (isReply || isPrompt) {
       let text = ''
+      let thinking = ''
       let isThinking = false
       for (const block of e.message.content) {
         if (block.type === 'text') text += `${block.text} `
         if (block.type === 'thinking') {
           isThinking = true
-          text += `${block.thinking} `
+          thinking += `${block.thinking} `
         }
       }
       text = oneLine(text)
+      // A prompt that starts with a tag is the engine's, such as a task notification.
+      const hasText = text !== '' && !(isPrompt && text.startsWith('<'))
+      const base = { agentId: e.agentId, isAgentCall: false, isDone: true }
       // A model can sign a thinking block and send no text in it.
-      if (text || isThinking) {
-        // The transcript scrolls to a row by its uuid.
-        const row: MinimapEvent = {
-          id: e.uuid,
-          kind: isPrompt ? 'user' : isThinking ? 'thinking' : 'assistant',
-          label: isPrompt ? 'User' : isThinking ? 'Thinking' : 'Assistant',
-          text,
-          agentId: e.agentId,
-          isAgentCall: false,
-          isDone: true,
-        }
-        await add($, row)
+      // The transcript scrolls to a row by its uuid, which the text row takes when a message holds both.
+      if (isThinking) {
+        const id = hasText ? `thinking:${e.uuid}` : e.uuid
+        await add($, { id, kind: 'thinking', label: 'Thinking', text: oneLine(thinking), ...base })
+      }
+      if (hasText) {
+        const kind = isPrompt ? 'user' : 'assistant'
+        await add($, { id: e.uuid, kind, label: isPrompt ? 'User' : 'Assistant', text, ...base })
       }
     }
 
