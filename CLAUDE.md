@@ -100,6 +100,16 @@ claude --plugin-dir . --model haiku --settings '{"showThinkingSummaries":true}'
 - A session loads the new copy when it restarts. Bump `version` in
   `.claude-plugin/plugin.json`, or the update finds nothing new.
 
+## Bump the Version in Each Commit
+
+`.githooks/pre-commit` refuses a commit that does not change `version` in
+`.claude-plugin/plugin.json`. Stage the bump with the change.
+
+- A new clone needs `git config core.hooksPath .githooks` once. Git does not
+  copy that setting with the repo.
+- `git commit --amend` compares against the commit it amends, so it needs a new
+  bump too.
+
 ## Read the State When the Pane Is Not Enough
 
 A headless run draws no pane. To read the events the mod holds, copy the mod to

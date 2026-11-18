@@ -1,0 +1,10 @@
+#!/bin/sh
+# An installed copy updates only when `version` changes, so each commit must change it.
+file=.claude-plugin/plugin.json
+version() { sed -n 's/.*"version": *"\([^"]*\)".*/\1/p'; }
+staged=$(git show ":$file" | version)
+head=$(git show "HEAD:$file" 2>/dev/null | version)
+if [ "$staged" = "$head" ]; then
+  echo "pre-commit: bump \"version\" in $file. It is still $head." >&2
+  exit 1
+fi
