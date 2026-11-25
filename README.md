@@ -2,6 +2,8 @@
 
 A Claude Code mod that shows a map of the session in a pane beside the chat.
 
+![The minimap pane fills in as a session runs](https://github.com/djd0723/claude-minimap/releases/download/demo-assets/minimap-demo.gif)
+
 The pane lists each prompt, each reply from the agent, and each tool call. Two or
 more tool calls in a row fold into one row. A subagent is one row, and its own
 replies and tool calls sit inside it.
