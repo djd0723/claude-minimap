@@ -22,7 +22,13 @@ type Row = { id: string; event?: MinimapEvent; depth: number; childCount: number
 
 function oneLine(value: unknown): string {
   return typeof value === 'string'
-    ? value.replace(/\*\*|`/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_TEXT)
+    ? value
+        .replace(/\*\*|`/g, '')
+        .replace(/\s+/g, ' ')
+        // The engine refuses the whole pane when a Text holds a control character.
+        .replace(/[\u0000-\u001f\u007f-\u009f]/g, '')
+        .trim()
+        .slice(0, MAX_TEXT)
     : ''
 }
 
@@ -193,7 +199,9 @@ export const register: Register = on => {
       let ticks = 0
       const poll = $.clock.every(RESUME_POLL_MS, async () => {
         ticks += 1
-        if ((await $.session.id()) === e.sessionId && ticks < RESUME_POLL_TICKS) return
+        // A failed read counts as no change, so the tick limit still ends the poll.
+        const id = await $.session.id().catch(() => e.sessionId)
+        if (id === e.sessionId && ticks < RESUME_POLL_TICKS) return
         poll.cancel()
         await refill($)
       })
