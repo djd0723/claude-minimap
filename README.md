@@ -23,9 +23,6 @@ claude plugin install minimap --marketplace djd0723/claude-minimap
 Answer `y` to add the marketplace, then select a scope. The user scope loads the
 mod in each session.
 
-The repository is private. The install needs read access to it on GitHub and a
-git credential for github.com on the machine.
-
 ## Use
 
 - `/minimap` opens the pane.
@@ -74,3 +71,7 @@ the mod. `tsc` needs them.
 
 - `hooks/register.tsx` holds the event hooks, the fold logic, and the pane.
 - `types/index.d.ts` declares the state the mod keeps.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

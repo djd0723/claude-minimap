@@ -1,5 +1,16 @@
 {
   "name": "claude-minimap",
-  "owner": { "name": "Dominic Dones" },
-  "plugins": [{ "name": "minimap", "source": { "source": "github", "repo": "djd0723/claude-minimap" } }]
+  "owner": {
+    "name": "Dominic Dones"
+  },
+  "description": "A Claude Code mod that maps the session in a pane beside the chat",
+  "plugins": [
+    {
+      "name": "minimap",
+      "source": {
+        "source": "github",
+        "repo": "djd0723/claude-minimap"
+      }
+    }
+  ]
 }

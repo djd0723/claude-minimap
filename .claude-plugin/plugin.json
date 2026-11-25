@@ -1,6 +1,11 @@
 {
   "name": "minimap",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A pane that maps the session: prompts, tool calls, and agent history in collapsible groups",
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "license": "MIT",
+  "repository": "https://github.com/djd0723/claude-minimap",
+  "author": {
+    "name": "Dominic Dones"
+  }
 }
